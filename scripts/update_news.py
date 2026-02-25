@@ -2278,6 +2278,48 @@ def main() -> int:
         }
 
     latest_path.write_text(json.dumps(latest_payload, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+
+    # --- Pagination ---
+    _PAGE_SIZE = 200
+    _pages_dir = output_dir / "pages"
+    _pages_dir.mkdir(exist_ok=True)
+    # clean old pages
+    for _old in _pages_dir.glob("*.json"):
+        _old.unlink()
+
+    def _write_pages(prefix, items):
+        n = 0
+        for i in range(0, max(len(items), 1), _PAGE_SIZE):
+            chunk = items[i:i+_PAGE_SIZE]
+            (_pages_dir / f"{prefix}-{n}.json").write_text(
+                json.dumps({"items": chunk}, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+            n += 1
+        return n
+
+    _stripped_ai = [_strip(i) for i in latest_items_ai_dedup]
+    _stripped_all = [_strip(i) for i in latest_items_all_dedup]
+    _stripped_allraw = [_strip(i) for i in latest_items_all]
+    _pg_ai = _write_pages("ai", _stripped_ai)
+    _pg_all = _write_pages("all", _stripped_all)
+    _pg_allraw = _write_pages("allraw", _stripped_allraw)
+
+    _meta = {
+        "generated_at": iso(now),
+        "total_items": len(latest_items_ai_dedup),
+        "total_items_raw": len(latest_items_all),
+        "total_items_all_mode": len(latest_items_all_dedup),
+        "archive_total": len(archive),
+        "site_count": len(site_stat),
+        "source_count": len({f"{i['site_id']}::{i['source']}" for i in latest_items_ai_dedup}),
+        "site_stats": sorted(site_stat.values(), key=lambda x: x["count"], reverse=True),
+        "page_size": _PAGE_SIZE,
+        "total_pages_ai": _pg_ai,
+        "total_pages_all": _pg_all,
+        "total_pages_allraw": _pg_allraw,
+    }
+    (output_dir / "latest-24h-meta.json").write_text(
+        json.dumps(_meta, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+    print(f"Wrote: {output_dir / 'latest-24h-meta.json'} (pages: ai={_pg_ai}, all={_pg_all}, allraw={_pg_allraw})")
     archive_path.write_text(json.dumps(archive_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     status_path.write_text(json.dumps(status_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     waytoagi_path.write_text(json.dumps(waytoagi_payload, ensure_ascii=False, indent=2), encoding="utf-8")
