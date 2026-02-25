@@ -2198,22 +2198,22 @@ def main() -> int:
             "raw_count": raw_count_by_site.get(sid, 0),
         }
 
+    _FE_FIELDS = frozenset(('site_id','site_name','source','title','title_zh','title_en','url','published_at','first_seen_at'))
+    def _strip(item):
+        return {k: v for k, v in item.items() if k in _FE_FIELDS}
+
     latest_payload = {
         "generated_at": iso(now),
-        "window_hours": args.window_hours,
         "total_items": len(latest_items_ai_dedup),
-        "total_items_ai_raw": len(latest_items),
         "total_items_raw": len(latest_items_all),
         "total_items_all_mode": len(latest_items_all_dedup),
-        "topic_filter": "ai_tech_robotics",
         "archive_total": len(archive),
         "site_count": len(site_stat),
         "source_count": len({f"{i['site_id']}::{i['source']}" for i in latest_items_ai_dedup}),
         "site_stats": sorted(site_stat.values(), key=lambda x: x["count"], reverse=True),
-        "items": latest_items_ai_dedup,
-        "items_ai": latest_items_ai_dedup,
-        "items_all_raw": latest_items_all,
-        "items_all": latest_items_all_dedup,
+        "items_ai": [_strip(i) for i in latest_items_ai_dedup],
+        "items_all_raw": [_strip(i) for i in latest_items_all],
+        "items_all": [_strip(i) for i in latest_items_all_dedup],
     }
 
     archive_payload = {
@@ -2277,7 +2277,7 @@ def main() -> int:
             "error": str(exc),
         }
 
-    latest_path.write_text(json.dumps(latest_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    latest_path.write_text(json.dumps(latest_payload, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     archive_path.write_text(json.dumps(archive_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     status_path.write_text(json.dumps(status_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     waytoagi_path.write_text(json.dumps(waytoagi_payload, ensure_ascii=False, indent=2), encoding="utf-8")
