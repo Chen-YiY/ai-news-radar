@@ -355,13 +355,13 @@ function renderWaytoagi(waytoagi) {
 }
 
 async function loadNewsData() {
-  const res = await fetch(`./data/latest-24h.json?t=${Date.now()}`);
+  const res = await fetch('./data/latest-24h.json');
   if (!res.ok) throw new Error(`加载 latest-24h.json 失败: ${res.status}`);
   return res.json();
 }
 
 async function loadWaytoagiData() {
-  const res = await fetch(`./data/waytoagi-7d.json?t=${Date.now()}`);
+  const res = await fetch('./data/waytoagi-7d.json');
   if (!res.ok) throw new Error(`加载 waytoagi-7d.json 失败: ${res.status}`);
   return res.json();
 }
@@ -399,9 +399,11 @@ async function init() {
   }
 }
 
+let _searchTimer;
 searchInputEl.addEventListener("input", (e) => {
   state.query = e.target.value;
-  renderList();
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => renderList(), 200);
 });
 
 siteSelectEl.addEventListener("change", (e) => {
